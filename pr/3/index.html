@@ -74,32 +74,35 @@ mermaid.initialize({startOnLoad: true, theme: dark ? "dark" : "default", securit
 <h2>判断サマリー</h2>
 <div class="verdict">
 <div class="risk medium"><span>リスク</span><b>中</b></div>
-<div class="verdict-body"><p class="summary">検出ルールや AI 出力処理を確認するユニットテストを追加し、PR と main への push 時に GitHub Actions で実行します。キーワード検出ではテスト・文書・CI 設定などを除外するようにしました。</p><p class="muted">主な変更はテストと CI ですが、キーワード検出の除外条件が実際のレビュー対象ファイルまで除外しないか確認が必要です。</p><p class="muted">重要箇所の変更: CI/CD・インフラ</p><h3>Approve 前に確認すること</h3><ul class="check"><li>除外パターンが意図したファイルだけに適用されることを確認する</li><li>パス一致による重要箇所の検出が除外設定の影響を受けないことを確認する</li><li>ローカルで unittest が成功し、CI の PR・main push 条件が適切であることを確認する</li><li>AI 出力の不正値や Mermaid 図のラベル・エッジに関するテスト期待値が妥当であることを確認する</li></ul></div>
+<div class="verdict-body"><p class="summary">重要箇所の検出、AI 出力処理、リスク判定、Mermaid ラベル処理を検証するユニットテストを追加し、GitHub Actions で自動実行します。キーワード検出ではテスト・文書・GitHub 設定配下を除外します。</p><p class="muted">キーワード検出対象を除外パス設定で変えるためレビュー観点の検出結果に影響しますが、パスによる検出は維持され、ユニットテストと CI が追加されています。</p><p class="muted">重要箇所の変更: CI/CD・インフラ</p><h3>Approve 前に確認すること</h3><ul class="check"><li>除外パスの正規表現が想定するテスト・文書・設定ファイルだけに適用されることを確認する。</li><li>除外対象でもルールのパス一致による検出が維持されることを確認する。</li><li>ユニットテストがローカルおよび GitHub Actions 上で実行できることを確認する。</li><li>AI 出力の解析・正規化、リスク判定、Mermaid 表示のテスト内容が主要な境界条件を押さえていることを確認する。</li></ul></div>
 </div>
 </section>
 
 <section>
 <h2>何を変更したか</h2>
-<p><strong>目的:</strong> 要約生成スクリプトの重要な処理が変更時に壊れても気づけるよう、テストと自動実行の仕組みを整備します。</p><div class="changes"><div class="change"><h3>ユニットテストの追加</h3>
-<div class="ba"><div class="before"><small>変更前</small>検出ルール、AI 出力の解析・正規化、リスク判定、Mermaid 図の処理を確認するテストがありませんでした。</div><div class="arrow">→</div>
-<div class="after"><small>変更後</small>標準ライブラリ unittest で各処理の代表的な挙動を検証します。</div></div><div class="files"><code>tests/test_generate_pr_summary.py</code></div></div><div class="change"><h3>テストの自動実行</h3>
-<div class="ba"><div class="before"><small>変更前</small>PR や main への push でユニットテストを自動実行する CI がありませんでした。</div><div class="arrow">→</div>
-<div class="after"><small>変更後</small>GitHub Actions が PR と main への push で unittest を実行します。</div></div><div class="files"><code>.github/workflows/test.yml</code></div></div><div class="change"><h3>キーワード検出対象の除外</h3>
-<div class="ba"><div class="before"><small>変更前</small>テスト・文書・CI 設定にあるキーワードも内容によって検出対象になり得ました。</div><div class="arrow">→</div>
-<div class="after"><small>変更後</small>設定した除外パスではキーワード検出を行わず、ルールのパス一致による検出は維持します。</div></div><div class="files"><code>scripts/generate_pr_summary.py</code> <code>scripts/review_rules.json</code></div></div><div class="change"><h3>テスト手順の文書化</h3>
-<div class="ba"><div class="before"><small>変更前</small>README にテストの実行方法が記載されていませんでした。</div><div class="arrow">→</div>
-<div class="after"><small>変更後</small>ローカルでの unittest 実行方法と CI の実行条件を記載します。</div></div><div class="files"><code>README.md</code></div></div></div><h3 style="margin-top:18px">影響するコンポーネント</h3><p class="muted" style="margin:0">オレンジ色が今回変更したコンポーネントです。</p><div class="diagram"><pre class="mermaid">flowchart LR
-  n0[&quot;GitHub Actions テスト workflow&quot;]
+<p><strong>目的:</strong> サマリー生成スクリプトの重要な処理が変更で壊れることを検知し、テストや文書内の文字列によるキーワード誤検出を抑えるためです。</p><div class="changes"><div class="change"><h3>ユニットテストの追加</h3>
+<div class="ba"><div class="before"><small>変更前</small>検出ルールや AI 出力処理などを自動で検証するテストがありませんでした。</div><div class="arrow">→</div>
+<div class="after"><small>変更後</small>検出、JSON 解析・正規化、リスク判定、Mermaid ラベル処理を unittest で検証します。</div></div><div class="files"><code>tests/test_generate_pr_summary.py</code></div></div><div class="change"><h3>GitHub Actions でのテスト実行</h3>
+<div class="ba"><div class="before"><small>変更前</small>PR 時や main への push 時に、このテストを実行するワークフローがありませんでした。</div><div class="arrow">→</div>
+<div class="after"><small>変更後</small>PR と main への push で checkout 後に unittest を実行します。</div></div><div class="files"><code>.github/workflows/test.yml</code></div></div><div class="change"><h3>キーワード検出の除外パス</h3>
+<div class="ba"><div class="before"><small>変更前</small>設定されたキーワードは差分行の内容に基づき検出され、テストや文書、GitHub 設定の文字列も対象になり得ました。</div><div class="arrow">→</div>
+<div class="after"><small>変更後</small>指定したテスト・文書・.github 配下はキーワード検出から除外し、ルールのパス検出は引き続き行います。</div></div><div class="files"><code>scripts/generate_pr_summary.py</code> <code>scripts/review_rules.json</code></div></div><div class="change"><h3>テスト手順の文書化</h3>
+<div class="ba"><div class="before"><small>変更前</small>README にユニットテストの実行方法と CI 実行条件の説明がありませんでした。</div><div class="arrow">→</div>
+<div class="after"><small>変更後</small>unittest の実行コマンドと GitHub Actions の実行条件を記載します。</div></div><div class="files"><code>README.md</code></div></div></div><h3 style="margin-top:18px">影響するコンポーネント</h3><p class="muted" style="margin:0">オレンジ色が今回変更したコンポーネントです。</p><div class="diagram"><pre class="mermaid">flowchart LR
+  n0[&quot;GitHub Actions テスト&quot;]
   class n0 changed
-  n1[&quot;ユニットテスト&quot;]
+  n1[&quot;サマリー生成ユニットテスト&quot;]
   class n1 changed
-  n2[&quot;要約生成スクリプト&quot;]
+  n2[&quot;サマリー生成スクリプト&quot;]
   class n2 changed
   n3[&quot;検出ルール設定&quot;]
   class n3 changed
-  n0 -- &quot;unittest を実行&quot; --&gt; n1
+  n4[&quot;README テスト手順&quot;]
+  class n4 changed
+  n0 -- &quot;テストを実行&quot; --&gt; n1
   n1 -- &quot;処理を検証&quot; --&gt; n2
-  n2 -- &quot;ルールを読み込む&quot; --&gt; n3
+  n2 -- &quot;ルールを読み込み&quot; --&gt; n3
+  n4 -- &quot;CI 実行条件を説明&quot; --&gt; n0
   classDef changed fill:#ffd8b5,stroke:#bc4c00,stroke-width:2px,color:#1f2328</pre></div>
 <h3 style="margin-top:18px">変更したエリア</h3>
 <div class="areas"><div class="area"><div><code>tests/</code></div><div class="track"><div class="fill" style="width:100%"></div></div><div class="muted">1 ファイル / 91 行</div></div><div class="area sensitive"><div><code>.github/workflows/</code><span class="tag">● 重要</span></div><div class="track"><div class="fill" style="width:19%"></div></div><div class="muted">1 ファイル / 17 行</div></div><div class="area"><div><code>scripts/</code></div><div class="track"><div class="fill" style="width:18%"></div></div><div class="muted">2 ファイル / 16 行</div></div><div class="area"><div><code>(ルート)</code></div><div class="track"><div class="fill" style="width:9%"></div></div><div class="muted">1 ファイル / 8 行</div></div></div>
@@ -107,9 +110,9 @@ mermaid.initialize({startOnLoad: true, theme: dark ? "dark" : "default", securit
 
 <section>
 <h2>レビュー観点</h2>
-<div class="point medium"><span class="badge medium">重要・自動検出</span><strong>CI/CD・インフラ</strong><ul><li>ワークフローの権限(permissions)やトリガーが広がっていないか</li><li>デプロイ手順や本番環境への影響が想定どおりか</li></ul><div class="files"><code>.github/workflows/test.yml</code>(パス)</div></div><div class="point"><span class="badge ai">AI</span><strong>除外パスの適用範囲</strong><div>キーワード検出の除外が意図したディレクトリ・拡張子に限られ、実装上の変更を含むファイルまで誤って除外しないか確認してください。パスによる検出は除外後も行われる点も確認対象です。</div><div class="files"><code>scripts/review_rules.json</code> <code>scripts/generate_pr_summary.py</code></div></div><div class="point"><span class="badge ai">AI</span><strong>CI の実行条件と権限</strong><div>PR と main への push でテストが実行され、必要最小限の権限で checkout とテストが完了することを確認してください。</div><div class="files"><code>.github/workflows/test.yml</code></div></div><div class="point"><span class="badge ai">AI</span><strong>テストの期待値</strong><div>正常系だけでなく、不正な AI 出力・不明なリスク値・不正な図のエッジなど、意図した入力に対する期待値が適切か確認してください。</div><div class="files"><code>tests/test_generate_pr_summary.py</code></div></div>
+<div class="point medium"><span class="badge medium">重要・自動検出</span><strong>CI/CD・インフラ</strong><ul><li>ワークフローの権限(permissions)やトリガーが広がっていないか</li><li>デプロイ手順や本番環境への影響が想定どおりか</li></ul><div class="files"><code>.github/workflows/test.yml</code>(パス)</div></div><div class="point"><span class="badge ai">AI</span><strong>除外パスの適用範囲</strong><div>.github 配下などではキーワード検出を行わない設定が意図どおりか、パス検出は従来どおり維持されるかを確認してください。</div><div class="files"><code>scripts/review_rules.json</code> <code>scripts/generate_pr_summary.py</code></div></div><div class="point"><span class="badge ai">AI</span><strong>CI の実行条件と権限</strong><div>PR と main への push が意図した対象であり、テスト実行に必要な最小限の権限になっているかを確認してください。</div><div class="files"><code>.github/workflows/test.yml</code></div></div><div class="point"><span class="badge ai">AI</span><strong>テストの網羅性</strong><div>代表的な検出ルール、AI 出力の不正形式や境界値、Mermaid エッジの扱いが十分に検証されているかを確認してください。</div><div class="files"><code>tests/test_generate_pr_summary.py</code></div></div>
 </section>
-<footer>生成日時: 2026-10-17 05:46 UTC · head <code>d49734c</code> · 要約: GitHub Copilot<br>
+<footer>生成日時: 2026-10-17 05:50 UTC · head <code>d49734c</code> · 要約: GitHub Copilot<br>
 AI の要約は誤りを含むことがあります。判断に迷う点は PR の差分で確認してください。</footer>
 
 </main></body>

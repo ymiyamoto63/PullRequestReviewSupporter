@@ -2,7 +2,7 @@
   "number": 3,
   "title": "Add unit tests for rule detection and AI output handling",
   "author": "ymiyamoto63",
-  "state": "open",
+  "state": "merged",
   "risk": "medium",
-  "updated_at": "2026-10-17T05:46:05Z"
+  "updated_at": "2026-10-17T05:50:11Z"
 }
