@@ -19,19 +19,24 @@ PR が作成されると、サマリーへのリンクが PR にコメントさ�
 2. **何を変更したか**: 変更点ごとの「変更前 → 変更後」カード、影響するコンポーネントの図、変更したエリア(ディレクトリ別の変更量)
 3. **レビュー観点**: 重要箇所(認証認可、データベース、API、秘密情報、依存関係、CI/CD)の変更をルールで自動検出して必ず列挙し、AI が補足の観点を追加
 
-### AI による要約(GitHub Models)
+### AI による要約(GitHub Copilot CLI)
 
-変更内容の要約には [GitHub Models](https://docs.github.com/github-models) を使います。ワークフローの
-`permissions: models: read` により標準の `GITHUB_TOKEN` で呼び出すため、API キーの登録は不要です。
-GitHub Models が使えない場合でも、ルールによるレビュー観点と変更エリアの図は出力されます。
+変更内容の要約には [GitHub Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli/automate-copilot-cli/automate-with-actions) を非対話モードで使います。
+利用には Copilot のプランと、次の設定が必要です。
 
-環境変数で次を変更できます。
+1. **Copilot Requests** 権限を付けた fine-grained personal access token を作成します。
+2. リポジトリの **Settings → Secrets and variables → Actions** で、Secret `COPILOT_GITHUB_TOKEN` として登録します。
 
-| 変数 | 既定値 | 内容 |
+Copilot の利用分はトークンを作成したユーザーの Copilot に計上されます。
+Secret が未設定、または Copilot の呼び出しに失敗した場合でも、ルールによるレビュー観点と変更エリアの図は出力されます。
+
+次の設定で動作を変更できます。
+
+| 設定 | 既定値 | 内容 |
 | --- | --- | --- |
-| `PR_SUMMARY_MODEL` | `openai/gpt-4.1` | 使用するモデル |
-| `PR_SUMMARY_PROMPT_CHARS` | `20000` | モデルに渡す最大文字数(プランの入力上限に合わせて調整) |
-| `PR_SUMMARY_RULES` | `scripts/review_rules.json` | 重要箇所の検出ルール |
+| Actions 変数 `PR_SUMMARY_MODEL` | Copilot の既定 | 使用するモデル(`copilot --model` に渡す値) |
+| 環境変数 `PR_SUMMARY_PROMPT_CHARS` | `40000` | Copilot に渡す最大文字数 |
+| 環境変数 `PR_SUMMARY_RULES` | `scripts/review_rules.json` | 重要箇所の検出ルール |
 
 ### 重要箇所の検出ルール
 
@@ -46,8 +51,8 @@ GitHub Models が使えない場合でも、ルールによるレビュー観点
 ## ローカルで試す
 
 ```sh
-GITHUB_TOKEN=<models:read 権限を持つトークン> python3 scripts/generate_pr_summary.py --repo owner/name --pr 1 --out site
+GITHUB_TOKEN=<トークン> COPILOT_GITHUB_TOKEN=<Copilot Requests 権限のトークン> python3 scripts/generate_pr_summary.py --repo owner/name --pr 1 --out site
 open site/pr/1/index.html
 ```
 
-`--no-ai` を付けると GitHub Models を呼ばずに生成します。
+Copilot CLI(`npm install -g @github/copilot`)が必要です。`--no-ai` を付けると Copilot を呼ばずに生成します。
