@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>#2 Rework PR summary for faster approve decisions</title>
+<style>
+:root{--bg:#f6f8fa;--card:#fff;--text:#1f2328;--muted:#656d76;--border:#d0d7de;--accent:#0969da;
+--high:#cf222e;--high-bg:#ffebe9;--medium:#9a6700;--medium-bg:#fff8c5;--low:#1a7f37;--low-bg:#dafbe1;
+--before-bg:#fff1f0;--after-bg:#eefbf1;--bar:#8c959f}
+@media (prefers-color-scheme:dark){:root{--bg:#0d1117;--card:#161b22;--text:#e6edf3;--muted:#8d96a0;
+--border:#30363d;--accent:#4493f8;--high:#f85149;--high-bg:#25171c;--medium:#d29922;--medium-bg:#272115;
+--low:#3fb950;--low-bg:#12261e;--before-bg:#2a1719;--after-bg:#132a1d;--bar:#6e7681}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Sans","Noto Sans JP",sans-serif}
+main{max-width:1000px;margin:0 auto;padding:24px 16px 64px}
+a{color:var(--accent)}
+h1{font-size:1.5rem;margin:0 0 4px;line-height:1.4}
+h2{font-size:1.1rem;margin:0 0 12px}
+h3{font-size:1rem;margin:0 0 6px}
+section{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin-top:16px}
+.muted{color:var(--muted)}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.85em;word-break:break-all}
+.verdict{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap}
+.risk{flex:0 0 auto;width:120px;text-align:center;border-radius:10px;padding:12px 8px}
+.risk b{display:block;font-size:2rem;line-height:1.2}
+.risk.high{background:var(--high-bg);color:var(--high)}.risk.medium{background:var(--medium-bg);color:var(--medium)}.risk.low{background:var(--low-bg);color:var(--low)}
+.verdict-body{flex:1 1 300px}
+.summary{font-size:1.05rem;margin:0 0 8px}
+ul.check{list-style:none;padding:0;margin:8px 0 0}
+ul.check li{padding-left:1.6em;position:relative;margin:4px 0}
+ul.check li::before{content:"☐";position:absolute;left:0}
+.changes{display:grid;gap:12px}
+.change{border:1px solid var(--border);border-radius:8px;padding:12px 14px}
+.ba{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:stretch;margin-top:6px}
+.ba div{border-radius:6px;padding:8px 10px}
+.ba .before{background:var(--before-bg)}.ba .after{background:var(--after-bg)}
+.ba .arrow{align-self:center;font-size:1.3rem;color:var(--muted);padding:0}
+.ba small{display:block;color:var(--muted);font-size:.75rem}
+@media (max-width:640px){.ba{grid-template-columns:1fr}.ba .arrow{transform:rotate(90deg);justify-self:center}}
+.files{margin-top:6px;font-size:.85rem;color:var(--muted)}
+.diagram{overflow-x:auto;text-align:center}
+pre.mermaid{background:none;margin:0}pre.mermaid:not([data-processed]){color:transparent}
+.areas{display:grid;gap:6px}
+.area{display:grid;grid-template-columns:minmax(120px,30%) 1fr auto;gap:10px;align-items:center;font-size:.9rem}
+.area .track{background:var(--bg);border-radius:4px;height:14px;overflow:hidden}
+.area .fill{height:100%;background:var(--bar);border-radius:4px}
+.area.sensitive .fill{background:var(--high)}
+.area .tag{font-size:.75rem;color:var(--high);margin-left:4px}
+.point{border-left:4px solid var(--border);padding:8px 12px;margin:10px 0;border-radius:0 6px 6px 0;background:var(--bg)}
+.point.high{border-color:var(--high)}.point.medium{border-color:var(--medium)}
+.badge{display:inline-block;font-size:.75rem;padding:0 8px;border-radius:999px;margin-right:6px;vertical-align:middle}
+.badge.high{background:var(--high-bg);color:var(--high)}.badge.medium{background:var(--medium-bg);color:var(--medium)}.badge.ai{background:var(--card);color:var(--muted);border:1px solid var(--border)}
+.point ul{margin:4px 0 0;padding-left:1.2em}
+.notice{background:var(--medium-bg);color:var(--medium);border-radius:6px;padding:8px 12px}
+.table-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%}
+th,td{text-align:left;padding:6px 10px;border-bottom:1px solid var(--border)}
+footer{margin-top:24px;font-size:.85rem;color:var(--muted)}
+</style>
+
+</head>
+<body><main>
+
+<p class="muted"><a href="../../">← PR 一覧</a> · ymiyamoto63/PullRequestReviewSupporter</p>
+<h1>#2 Rework PR summary for faster approve decisions</h1>
+<p><a href="https://github.com/ymiyamoto63/PullRequestReviewSupporter/pull/2">GitHub で PR を開く(差分・コミットの詳細)</a></p>
+
+<section>
+<h2>判断サマリー</h2>
+<div class="verdict">
+<div class="risk high"><span>リスク</span><b>高</b></div>
+<div class="verdict-body"><p class="summary">Rework PR summary for faster approve decisions</p><p class="muted">重要箇所の変更: 認証・認可、データベース、API、CI/CD・インフラ</p><h3>Approve 前に確認すること</h3><ul class="check"><li>認証・認可への変更を確認する(下の「レビュー観点」参照)</li><li>データベースへの変更を確認する(下の「レビュー観点」参照)</li><li>APIへの変更を確認する(下の「レビュー観点」参照)</li></ul></div>
+</div>
+</section>
+
+<section>
+<h2>何を変更したか</h2>
+<p class="notice">AI による変更内容の要約を生成できませんでした(JSONDecodeError)。変更エリアの図とレビュー観点のみ表示しています。</p>
+<h3 style="margin-top:18px">変更したエリア</h3>
+<div class="areas"><div class="area sensitive"><div><code>scripts/</code><span class="tag">● 重要</span></div><div class="track"><div class="fill" style="width:100%"></div></div><div class="muted">2 ファイル / 717 行</div></div><div class="area sensitive"><div><code>(ルート)</code><span class="tag">● 重要</span></div><div class="track"><div class="fill" style="width:6%"></div></div><div class="muted">2 ファイル / 42 行</div></div><div class="area sensitive"><div><code>.github/workflows/</code><span class="tag">● 重要</span></div><div class="track"><div class="fill" style="width:2%"></div></div><div class="muted">1 ファイル / 1 行</div></div><div class="area"><div><code>scripts/__pycache__/</code></div><div class="track"><div class="fill" style="width:2%"></div></div><div class="muted">1 ファイル / 0 行</div></div></div>
+</section>
+
+<section>
+<h2>レビュー観点</h2>
+<div class="point high"><span class="badge high">重要・自動検出</span><strong>認証・認可</strong><ul><li>認証をバイパスできる経路が増えていないか</li><li>権限チェックが抜けている、または緩くなっていないか</li><li>トークンやセッションの有効期限・失効処理が正しいか</li></ul><div class="files"><code>README.md</code>(キーワード「permission」) <code>scripts/generate_pr_summary.py</code>(キーワード「role」) <code>scripts/review_rules.json</code>(キーワード「jwt」)</div></div><div class="point high"><span class="badge high">重要・自動検出</span><strong>データベース</strong><ul><li>マイグレーションは既存データを壊さないか(ロールバックできるか)</li><li>大きなテーブルへのロックや長時間処理にならないか</li><li>インデックスや制約の追加・削除がクエリ性能に影響しないか</li></ul><div class="files"><code>scripts/review_rules.json</code>(キーワード「add_column」)</div></div><div class="point high"><span class="badge high">重要・自動検出</span><strong>API</strong><ul><li>既存クライアントとの互換性が壊れていないか(パラメータやレスポンスの変更)</li><li>入力値の検証が十分か</li><li>エラー時のレスポンスとステータスコードが適切か</li></ul><div class="files"><code>scripts/review_rules.json</code>(キーワード「status_code」)</div></div><div class="point medium"><span class="badge medium">重要・自動検出</span><strong>CI/CD・インフラ</strong><ul><li>ワークフローの権限(permissions)やトリガーが広がっていないか</li><li>デプロイ手順や本番環境への影響が想定どおりか</li></ul><div class="files"><code>.github/workflows/pr-summary.yml</code>(パス)</div></div>
+</section>
+<footer>生成日時: 2026-10-17 02:50 UTC · head <code>90c9a60</code><br>
+AI の要約は誤りを含むことがあります。判断に迷う点は PR の差分で確認してください。</footer>
+
+</main></body>
+</html>
