@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>#3 Add unit tests for rule detection and AI output handling</title>
+<style>
+:root{--bg:#f6f8fa;--card:#fff;--text:#1f2328;--muted:#656d76;--border:#d0d7de;--accent:#0969da;
+--high:#cf222e;--high-bg:#ffebe9;--medium:#9a6700;--medium-bg:#fff8c5;--low:#1a7f37;--low-bg:#dafbe1;
+--before-bg:#fff1f0;--after-bg:#eefbf1;--bar:#8c959f}
+@media (prefers-color-scheme:dark){:root{--bg:#0d1117;--card:#161b22;--text:#e6edf3;--muted:#8d96a0;
+--border:#30363d;--accent:#4493f8;--high:#f85149;--high-bg:#25171c;--medium:#d29922;--medium-bg:#272115;
+--low:#3fb950;--low-bg:#12261e;--before-bg:#2a1719;--after-bg:#132a1d;--bar:#6e7681}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Sans","Noto Sans JP",sans-serif}
+main{max-width:1000px;margin:0 auto;padding:24px 16px 64px}
+a{color:var(--accent)}
+h1{font-size:1.5rem;margin:0 0 4px;line-height:1.4}
+h2{font-size:1.1rem;margin:0 0 12px}
+h3{font-size:1rem;margin:0 0 6px}
+section{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin-top:16px}
+.muted{color:var(--muted)}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.85em;word-break:break-all}
+.verdict{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap}
+.risk{flex:0 0 auto;width:120px;text-align:center;border-radius:10px;padding:12px 8px}
+.risk b{display:block;font-size:2rem;line-height:1.2}
+.risk.high{background:var(--high-bg);color:var(--high)}.risk.medium{background:var(--medium-bg);color:var(--medium)}.risk.low{background:var(--low-bg);color:var(--low)}
+.verdict-body{flex:1 1 300px}
+.summary{font-size:1.05rem;margin:0 0 8px}
+ul.check{list-style:none;padding:0;margin:8px 0 0}
+ul.check li{padding-left:1.6em;position:relative;margin:4px 0}
+ul.check li::before{content:"☐";position:absolute;left:0}
+.changes{display:grid;gap:12px}
+.change{border:1px solid var(--border);border-radius:8px;padding:12px 14px}
+.ba{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:stretch;margin-top:6px}
+.ba div{border-radius:6px;padding:8px 10px}
+.ba .before{background:var(--before-bg)}.ba .after{background:var(--after-bg)}
+.ba .arrow{align-self:center;font-size:1.3rem;color:var(--muted);padding:0}
+.ba small{display:block;color:var(--muted);font-size:.75rem}
+@media (max-width:640px){.ba{grid-template-columns:1fr}.ba .arrow{transform:rotate(90deg);justify-self:center}}
+.files{margin-top:6px;font-size:.85rem;color:var(--muted)}
+.diagram{overflow-x:auto;text-align:center}
+pre.mermaid{background:none;margin:0}pre.mermaid:not([data-processed]){color:transparent}
+.areas{display:grid;gap:6px}
+.area{display:grid;grid-template-columns:minmax(120px,30%) 1fr auto;gap:10px;align-items:center;font-size:.9rem}
+.area .track{background:var(--bg);border-radius:4px;height:14px;overflow:hidden}
+.area .fill{height:100%;background:var(--bar);border-radius:4px}
+.area.sensitive .fill{background:var(--high)}
+.area .tag{font-size:.75rem;color:var(--high);margin-left:4px}
+.point{border-left:4px solid var(--border);padding:8px 12px;margin:10px 0;border-radius:0 6px 6px 0;background:var(--bg)}
+.point.high{border-color:var(--high)}.point.medium{border-color:var(--medium)}
+.badge{display:inline-block;font-size:.75rem;padding:0 8px;border-radius:999px;margin-right:6px;vertical-align:middle}
+.badge.high{background:var(--high-bg);color:var(--high)}.badge.medium{background:var(--medium-bg);color:var(--medium)}.badge.ai{background:var(--card);color:var(--muted);border:1px solid var(--border)}
+.point ul{margin:4px 0 0;padding-left:1.2em}
+.notice{background:var(--medium-bg);color:var(--medium);border-radius:6px;padding:8px 12px}
+.table-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%}
+th,td{text-align:left;padding:6px 10px;border-bottom:1px solid var(--border)}
+footer{margin-top:24px;font-size:.85rem;color:var(--muted)}
+</style>
+<script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
+const dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+mermaid.initialize({startOnLoad: true, theme: dark ? "dark" : "default", securityLevel: "strict"});
+</script>
+</head>
+<body><main>
+
+<p class="muted"><a href="../../">← PR 一覧</a> · ymiyamoto63/PullRequestReviewSupporter</p>
+<h1>#3 Add unit tests for rule detection and AI output handling</h1>
+<p><a href="https://github.com/ymiyamoto63/PullRequestReviewSupporter/pull/3">GitHub で PR を開く(差分・コミットの詳細)</a></p>
+
+<section>
+<h2>判断サマリー</h2>
+<div class="verdict">
+<div class="risk high"><span>リスク</span><b>高</b></div>
+<div class="verdict-body"><p class="summary">生成スクリプトの検出ルール、AI出力の処理、リスク判定、Mermaid図の生成を検証するユニットテストを追加します。テストはPRとmainへのpush時にGitHub Actionsで実行されます。</p><p class="muted">変更はテストとCI設定、READMEの説明追加に限られ、アプリケーション本体の挙動は変更しません。</p><p class="muted">重要箇所の変更: 認証・認可、データベース、CI/CD・インフラ</p><h3>Approve 前に確認すること</h3><ul class="check"><li>テストが生成スクリプトの実際の関数・期待動作に対応していること。</li><li>不正・境界入力のテスト範囲が十分であること。</li><li>GitHub Actionsのトリガーと権限が意図どおりであること。</li><li>READMEのテスト実行手順がワークフローと一致していること。</li><li>認証・認可への変更を確認する(下の「レビュー観点」参照)</li><li>データベースへの変更を確認する(下の「レビュー観点」参照)</li></ul></div>
+</div>
+</section>
+
+<section>
+<h2>何を変更したか</h2>
+<p><strong>目的:</strong> 重要な処理の回帰を検知し、変更時に動作が壊れていないことを継続的に確認できるようにします。</p><div class="changes"><div class="change"><h3>生成スクリプトのユニットテスト追加</h3>
+<div class="ba"><div class="before"><small>変更前</small>検出ルールやJSON解析、AI出力の整形、リスク判定、Mermaid生成に対する自動テストがありませんでした。</div><div class="arrow">→</div>
+<div class="after"><small>変更後</small>標準ライブラリのunittestで各処理の代表的な入力と期待結果を検証します。</div></div><div class="files"><code>tests/test_generate_pr_summary.py</code></div></div><div class="change"><h3>GitHub Actionsでのテスト実行</h3>
+<div class="ba"><div class="before"><small>変更前</small>PRやmainへのpushを契機とするテスト実行が設定されていませんでした。</div><div class="arrow">→</div>
+<div class="after"><small>変更後</small>PRとmainへのpushでunittestを実行するワークフローを追加します。</div></div><div class="files"><code>.github/workflows/test.yml</code></div></div><div class="change"><h3>テスト実行方法の案内</h3>
+<div class="ba"><div class="before"><small>変更前</small>READMEにテストの実行方法が記載されていませんでした。</div><div class="arrow">→</div>
+<div class="after"><small>変更後</small>ローカル実行コマンドとGitHub Actionsでの実行条件を記載します。</div></div><div class="files"><code>README.md</code></div></div></div><h3 style="margin-top:18px">影響するコンポーネント</h3><p class="muted" style="margin:0">オレンジ色が今回変更したコンポーネントです。</p><div class="diagram"><pre class="mermaid">flowchart LR
+  n0[&quot;README&quot;]
+  class n0 changed
+  n1[&quot;GitHub Actions&quot;]
+  class n1 changed
+  n2[&quot;unittestテスト&quot;]
+  class n2 changed
+  n3[&quot;PRサマリー生成スクリプト&quot;]
+  n0 -- &quot;実行方法を案内&quot; --&gt; n2
+  n1 -- &quot;PR・push時に実行&quot; --&gt; n2
+  n2 -- &quot;処理を呼び出して検証&quot; --&gt; n3
+  classDef changed fill:#ffd8b5,stroke:#bc4c00,stroke-width:2px,color:#1f2328</pre></div>
+<h3 style="margin-top:18px">変更したエリア</h3>
+<div class="areas"><div class="area sensitive"><div><code>tests/</code><span class="tag">● 重要</span></div><div class="track"><div class="fill" style="width:100%"></div></div><div class="muted">1 ファイル / 84 行</div></div><div class="area sensitive"><div><code>.github/workflows/</code><span class="tag">● 重要</span></div><div class="track"><div class="fill" style="width:20%"></div></div><div class="muted">1 ファイル / 17 行</div></div><div class="area"><div><code>(ルート)</code></div><div class="track"><div class="fill" style="width:10%"></div></div><div class="muted">1 ファイル / 8 行</div></div></div>
+</section>
+
+<section>
+<h2>レビュー観点</h2>
+<div class="point high"><span class="badge high">重要・自動検出</span><strong>認証・認可</strong><ul><li>認証をバイパスできる経路が増えていないか</li><li>権限チェックが抜けている、または緩くなっていないか</li><li>トークンやセッションの有効期限・失効処理が正しいか</li></ul><div class="files"><code>.github/workflows/test.yml</code>(キーワード「permission」)</div></div><div class="point high"><span class="badge high">重要・自動検出</span><strong>データベース</strong><ul><li>マイグレーションは既存データを壊さないか(ロールバックできるか)</li><li>大きなテーブルへのロックや長時間処理にならないか</li><li>インデックスや制約の追加・削除がクエリ性能に影響しないか</li></ul><div class="files"><code>tests/test_generate_pr_summary.py</code>(キーワード「ALTER TABLE」)</div></div><div class="point medium"><span class="badge medium">重要・自動検出</span><strong>CI/CD・インフラ</strong><ul><li>ワークフローの権限(permissions)やトリガーが広がっていないか</li><li>デプロイ手順や本番環境への影響が想定どおりか</li></ul><div class="files"><code>.github/workflows/test.yml</code>(パス)</div></div><div class="point"><span class="badge ai">AI</span><strong>重要な境界条件の検証範囲</strong><div>テストは代表例を確認しています。追加・削除ファイルや不正なAI出力など、実際に想定する入力の境界条件が十分に含まれているか確認してください。</div><div class="files"><code>tests/test_generate_pr_summary.py</code></div></div><div class="point"><span class="badge ai">AI</span><strong>CIの実行環境</strong><div>ubuntu-latest上でpython3を使います。依存パッケージの有無やPythonバージョンの前提がテストと合っているか確認してください。</div><div class="files"><code>.github/workflows/test.yml</code></div></div>
+</section>
+<footer>生成日時: 2026-10-17 05:44 UTC · head <code>044b5bc</code> · 要約: GitHub Copilot<br>
+AI の要約は誤りを含むことがあります。判断に迷う点は PR の差分で確認してください。</footer>
+
+</main></body>
+</html>
