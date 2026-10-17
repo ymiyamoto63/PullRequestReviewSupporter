@@ -74,40 +74,42 @@ mermaid.initialize({startOnLoad: true, theme: dark ? "dark" : "default", securit
 <h2>判断サマリー</h2>
 <div class="verdict">
 <div class="risk high"><span>リスク</span><b>高</b></div>
-<div class="verdict-body"><p class="summary">PR のレビュー用サマリー生成をコンポジットアクションとして切り出し、再利用可能ワークフローと直接利用の両方に対応します。Pages API から公開 URL を取得して PR コメントに反映し、既存リンクの不要な更新を抑えます。</p><p class="muted">アクションが gh-pages への書き込みや PR コメント作成を行い、再利用ワークフローは可変な main ブランチのアクションを参照するため、権限設定と参照先の信頼性の確認が必要です。</p><p class="muted">重要箇所の変更: 認証・認可、CI/CD・インフラ</p><h3>Approve 前に確認すること</h3><ul class="check"><li>呼び出し側の contents: write、pull-requests: write、pages: read が必要最小限で設定されていること。</li><li>fork PR のガードが維持され、トークンを使う処理が不適切なイベントで実行されないこと。</li><li>Pages API の URL と取得失敗時のフォールバックが意図した公開先を指すこと。</li><li>rules 指定時のチェックアウトと、ファイルがない場合のフォールバックが正しく動作すること。</li><li>コメントが PR イベントごとに重複せず、内容に変更がある場合だけ更新されること。</li><li>認証・認可への変更を確認する(下の「レビュー観点」参照)</li></ul></div>
+<div class="verdict-body"><p class="summary">PR サマリー生成処理をコンポジットアクションとして切り出し、再利用可能ワークフローと直接利用の両方に対応します。Pages API から取得した公開 URL を PR コメントに使い、取得できない場合は従来の URL にフォールバックします。</p><p class="muted">呼び出し側に gh-pages への書き込みや PR コメント更新の権限を付与し、外部アクションを実行するため、権限設定と参照先の管理が重要です。</p><p class="muted">重要箇所の変更: 認証・認可、CI/CD・インフラ</p><h3>Approve 前に確認すること</h3><ul class="check"><li>導入先の GITHUB_TOKEN に gh-pages への書き込みと PR コメント更新の権限が許可されている。</li><li>フォーク由来の PR が実行対象外であり、想定外のトークン利用がない。</li><li>ルールファイルを指定した場合のチェックアウトと、未指定・不在時の既定ルールへのフォールバックが意図どおりである。</li><li>Pages API の URL と取得失敗時のリンク、および PR イベントごとのコメント更新が正しい。</li><li>アクションを @main で参照する運用リスクを許容できる、または参照固定の方針がある。</li><li>認証・認可への変更を確認する(下の「レビュー観点」参照)</li></ul></div>
 </div>
 </section>
 
 <section>
 <h2>何を変更したか</h2>
-<p><strong>目的:</strong> サマリー生成のワークフローやスクリプトを他リポジトリへ複製せずに導入できるようにし、アクセス制御付き GitHub Pages でも正しいリンクを案内するためです。</p><div class="changes"><div class="change"><h3>サマリー生成をコンポジットアクション化</h3>
-<div class="ba"><div class="before"><small>変更前</small>生成、公開、コメントの処理はこのリポジトリのワークフローに直接記述されていました。</div><div class="arrow">→</div>
-<div class="after"><small>変更後</small>action.yml に処理をまとめ、gh-pages を一時ディレクトリへ取得し、同梱スクリプトで生成・公開します。ルールファイルの指定も可能です。</div></div><div class="files"><code>action.yml</code></div></div><div class="change"><h3>他リポジトリ向け再利用ワークフローを追加</h3>
-<div class="ba"><div class="before"><small>変更前</small>他リポジトリで使うにはワークフロー、スクリプト、ルールの複製が必要でした。</div><div class="arrow">→</div>
-<div class="after"><small>変更後</small>再利用可能ワークフローからアクションを呼び出せます。fork PR のガード、必要な書き込み・Pages 読み取り権限、公開処理の concurrency 制御を設定します。</div></div><div class="files"><code>.github/workflows/pr-summary-reusable.yml</code></div></div><div class="change"><h3>既存ワークフローをアクション利用に変更</h3>
-<div class="ba"><div class="before"><small>変更前</small>PR サマリー生成と公開の各ステップをワークフロー内に持っていました。</div><div class="arrow">→</div>
-<div class="after"><small>変更後</small>リポジトリ内のアクションを呼び出し、PR ごとにその変更内容を使って実行します。Pages API 用の権限を追加しています。</div></div><div class="files"><code>.github/workflows/pr-summary.yml</code></div></div><div class="change"><h3>コメント URL と更新動作を改善</h3>
-<div class="ba"><div class="before"><small>変更前</small>コメントの URL は github.io の既定形式で、コメント処理は作成・再オープン時に限られていました。</div><div class="arrow">→</div>
-<div class="after"><small>変更後</small>Pages API が返す URL を優先し、取得失敗時は既定形式にフォールバックします。closed 以外のイベントで処理し、本文に変更がある場合だけ既存コメントを編集します。</div></div><div class="files"><code>action.yml</code></div></div><div class="change"><h3>導入手順を README に追加</h3>
-<div class="ba"><div class="before"><small>変更前</small>他リポジトリや会社 Organization への導入手順は記載されていませんでした。</div><div class="arrow">→</div>
-<div class="after"><small>変更後</small>再利用ワークフロー・直接利用の例、必要な権限や Secret、Organization 内で使う場合の設定を説明します。</div></div><div class="files"><code>README.md</code></div></div></div><h3 style="margin-top:18px">影響するコンポーネント</h3><p class="muted" style="margin:0">オレンジ色が今回変更したコンポーネントです。</p><div class="diagram"><pre class="mermaid">flowchart LR
-  n0[&quot;Pull Request イベント&quot;]
-  n1[&quot;PR Summary ワークフロー&quot;]
+<p><strong>目的:</strong> 他のリポジトリでも処理一式をコピーせず導入できるようにし、アクセス制御付き GitHub Pages でも正しいリンクを案内するためです。</p><div class="changes"><div class="change"><h3>処理をコンポジットアクション化</h3>
+<div class="ba"><div class="before"><small>変更前</small>PR サマリーの生成、gh-pages への公開、PR コメントの更新はこのリポジトリのワークフロー内に記述されていました。</div><div class="arrow">→</div>
+<div class="after"><small>変更後</small>action.yml に処理をまとめ、他リポジトリからアクションとして利用できます。gh-pages は RUNNER_TEMP にチェックアウトし、スクリプトはアクション内から実行します。</div></div><div class="files"><code>action.yml</code></div></div><div class="change"><h3>再利用可能ワークフローを追加</h3>
+<div class="ba"><div class="before"><small>変更前</small>他のリポジトリで利用するには、ワークフローやスクリプト、ルールをコピーする必要がありました。</div><div class="arrow">→</div>
+<div class="after"><small>変更後</small>workflow_call で呼び出せるワークフローを追加し、モデル名や任意のルールファイルを指定できます。フォーク由来の PR は実行せず、公開とコメントに必要な権限・競合制御を設定します。</div></div><div class="files"><code>.github/workflows/pr-summary-reusable.yml</code></div></div><div class="change"><h3>既存ワークフローをアクション利用に変更</h3>
+<div class="ba"><div class="before"><small>変更前</small>既存ワークフロー自身が生成・公開・コメントの各手順を実行していました。</div><div class="arrow">→</div>
+<div class="after"><small>変更後</small>チェックアウト後に同じリポジトリのアクションを呼び出す構成になり、PR に含まれる action.yml を試せます。Pages URL 取得用の権限も追加されました。</div></div><div class="files"><code>.github/workflows/pr-summary.yml</code></div></div><div class="change"><h3>Pages URL の取得とコメント更新を改善</h3>
+<div class="ba"><div class="before"><small>変更前</small>コメントの URL は owner/repo から組み立てられ、コメント手順は新規作成・再オープン時に限られていました。</div><div class="arrow">→</div>
+<div class="after"><small>変更後</small>Pages API の URL を優先し、取得失敗時は従来の URL を使います。closed 以外のイベントでコメントを確認し、本文に変更がある場合だけ更新します。</div></div><div class="files"><code>action.yml</code></div></div><div class="change"><h3>導入手順を文書化</h3>
+<div class="ba"><div class="before"><small>変更前</small>他のリポジトリや会社 Organization での利用方法の説明はありませんでした。</div><div class="arrow">→</div>
+<div class="after"><small>変更後</small>再利用可能ワークフロー・直接利用の例、必要な権限や Pages 設定、Organization 内で使う場合の設定を説明します。</div></div><div class="files"><code>README.md</code></div></div></div><h3 style="margin-top:18px">影響するコンポーネント</h3><p class="muted" style="margin:0">オレンジ色が今回変更したコンポーネントです。</p><div class="diagram"><pre class="mermaid">flowchart LR
+  n0[&quot;PR イベント&quot;]
+  n1[&quot;このリポジトリの PR Summary ワークフロー&quot;]
   class n1 changed
   n2[&quot;再利用可能ワークフロー&quot;]
   class n2 changed
-  n3[&quot;コンポジットアクション&quot;]
+  n3[&quot;PR Review Summary アクション&quot;]
   class n3 changed
   n4[&quot;サマリー生成スクリプト&quot;]
-  n5[&quot;gh-pages / GitHub Pages&quot;]
-  n6[&quot;PR コメント&quot;]
+  n5[&quot;GitHub Pages API&quot;]
+  n6[&quot;gh-pages ブランチ／GitHub Pages&quot;]
+  n7[&quot;PR コメント&quot;]
   n0 -- &quot;イベントで起動&quot; --&gt; n1
-  n0 -- &quot;呼び出し元のイベント&quot; --&gt; n2
-  n1 -- &quot;ローカルアクションを呼び出す&quot; --&gt; n3
-  n2 -- &quot;アクションを呼び出す&quot; --&gt; n3
+  n0 -- &quot;呼び出し側から起動&quot; --&gt; n2
+  n1 -- &quot;ローカルアクションを実行&quot; --&gt; n3
+  n2 -- &quot;公開アクションを実行&quot; --&gt; n3
   n3 -- &quot;HTML生成を実行&quot; --&gt; n4
-  n3 -- &quot;gh-pages へ公開&quot; --&gt; n5
-  n3 -- &quot;サマリー URL を投稿・更新&quot; --&gt; n6
+  n3 -- &quot;gh-pages へ公開&quot; --&gt; n6
+  n3 -- &quot;公開 URL を取得&quot; --&gt; n5
+  n3 -- &quot;サマリーリンクを作成・更新&quot; --&gt; n7
   classDef changed fill:#ffd8b5,stroke:#bc4c00,stroke-width:2px,color:#1f2328</pre></div>
 <h3 style="margin-top:18px">変更したエリア</h3>
 <div class="areas"><div class="area sensitive"><div><code>(ルート)</code><span class="tag">● 重要</span></div><div class="track"><div class="fill" style="width:100%"></div></div><div class="muted">2 ファイル / 159 行</div></div><div class="area sensitive"><div><code>.github/workflows/</code><span class="tag">● 重要</span></div><div class="track"><div class="fill" style="width:69%"></div></div><div class="muted">2 ファイル / 109 行</div></div></div>
@@ -115,9 +117,9 @@ mermaid.initialize({startOnLoad: true, theme: dark ? "dark" : "default", securit
 
 <section>
 <h2>レビュー観点</h2>
-<div class="point high"><span class="badge high">重要・自動検出</span><strong>認証・認可</strong><ul><li>認証をバイパスできる経路が増えていないか</li><li>権限チェックが抜けている、または緩くなっていないか</li><li>トークンやセッションの有効期限・失効処理が正しいか</li></ul><div class="files"><code>action.yml</code>(キーワード「AUTHORIZ」)</div></div><div class="point medium"><span class="badge medium">重要・自動検出</span><strong>CI/CD・インフラ</strong><ul><li>ワークフローの権限(permissions)やトリガーが広がっていないか</li><li>デプロイ手順や本番環境への影響が想定どおりか</li></ul><div class="files"><code>.github/workflows/pr-summary-reusable.yml</code>(パス) <code>.github/workflows/pr-summary.yml</code>(パス)</div></div><div class="point"><span class="badge ai">AI</span><strong>書き込み権限と fork PR の実行条件</strong><div>アクションは gh-pages への push と PR コメントの作成・更新を行います。呼び出し側で必要な権限だけが許可され、fork からの PR が想定どおり実行対象外になるか確認してください。</div><div class="files"><code>.github/workflows/pr-summary-reusable.yml</code> <code>.github/workflows/pr-summary.yml</code> <code>action.yml</code></div></div><div class="point"><span class="badge ai">AI</span><strong>外部アクションの参照先</strong><div>再利用ワークフローはアクションを @main で参照しています。ブランチ更新による動作変更や供給元の信頼性を許容できるか確認してください。</div><div class="files"><code>.github/workflows/pr-summary-reusable.yml</code></div></div><div class="point"><span class="badge ai">AI</span><strong>Pages URL とルールファイルの扱い</strong><div>Pages API の URL が末尾スラッシュの有無を問わず正しく組み立てられること、API 失敗時に旧 URL へ戻ることを確認してください。また、rules 指定時はチェックアウトされたファイルだけが利用され、未取得時の警告と既定ルールへの切り替えが意図どおりか確認してください。</div><div class="files"><code>action.yml</code> <code>.github/workflows/pr-summary-reusable.yml</code></div></div><div class="point"><span class="badge ai">AI</span><strong>イベントごとのコメント更新</strong><div>closed 以外のイベントでコメントを確認し、本文が変わらない場合に更新が発生しないこと、既存コメントがなければ作成されることを確認してください。</div><div class="files"><code>action.yml</code></div></div>
+<div class="point high"><span class="badge high">重要・自動検出</span><strong>認証・認可</strong><ul><li>認証をバイパスできる経路が増えていないか</li><li>権限チェックが抜けている、または緩くなっていないか</li><li>トークンやセッションの有効期限・失効処理が正しいか</li></ul><div class="files"><code>action.yml</code>(キーワード「AUTHORIZ」)</div></div><div class="point medium"><span class="badge medium">重要・自動検出</span><strong>CI/CD・インフラ</strong><ul><li>ワークフローの権限(permissions)やトリガーが広がっていないか</li><li>デプロイ手順や本番環境への影響が想定どおりか</li></ul><div class="files"><code>.github/workflows/pr-summary-reusable.yml</code>(パス) <code>.github/workflows/pr-summary.yml</code>(パス)</div></div><div class="point"><span class="badge ai">AI</span><strong>書き込み権限の範囲</strong><div>contents: write と pull-requests: write が必要です。導入先でこれらがワークフローに許可されていること、およびトークンが想定した範囲に限られていることを確認してください。</div><div class="files"><code>.github/workflows/pr-summary-reusable.yml</code> <code>.github/workflows/pr-summary.yml</code> <code>action.yml</code></div></div><div class="point"><span class="badge ai">AI</span><strong>アクション参照の固定</strong><div>再利用可能ワークフローはアクションを @main で参照します。ブランチ先の変更が実行内容に反映されるため、運用上の信頼性やバージョン固定の方針を確認してください。</div><div class="files"><code>.github/workflows/pr-summary-reusable.yml</code> <code>README.md</code></div></div><div class="point"><span class="badge ai">AI</span><strong>チェックアウト不要時の動作</strong><div>ルール指定がない場合でも、アクションパスからスクリプトを実行し gh-pages の取得・公開が成立することを確認してください。ルール指定時は呼び出し側のチェックアウト内容が正しく渡ることも確認が必要です。</div><div class="files"><code>action.yml</code> <code>.github/workflows/pr-summary-reusable.yml</code></div></div><div class="point"><span class="badge ai">AI</span><strong>コメント・URL のイベント別挙動</strong><div>closed 以外のイベントでコメントを探索し、本文に差がある場合だけ更新する変更が意図どおりか確認してください。Pages API の URL 末尾のスラッシュや取得失敗時のフォールバックも確認対象です。</div><div class="files"><code>action.yml</code> <code>.github/workflows/pr-summary.yml</code></div></div>
 </section>
-<footer>生成日時: 2026-10-17 06:03 UTC · head <code>3b8c7bb</code> · 要約: GitHub Copilot<br>
+<footer>生成日時: 2026-10-17 06:39 UTC · head <code>3b8c7bb</code> · 要約: GitHub Copilot<br>
 AI の要約は誤りを含むことがあります。判断に迷う点は PR の差分で確認してください。</footer>
 
 </main></body>
