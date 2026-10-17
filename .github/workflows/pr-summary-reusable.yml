@@ -1,0 +1,47 @@
+name: PR Summary (reusable)
+
+# 他リポジトリから呼び出すための再利用可能ワークフロー。呼び出し例は README を参照。
+# 呼び出し側の job で contents: write, pull-requests: write, pages: read を許可すること。
+on:
+  workflow_call:
+    inputs:
+      model:
+        description: Copilot CLI のモデル名。空なら Copilot の既定
+        type: string
+        default: ""
+      rules:
+        description: 重要箇所の検出ルール (JSON) の呼び出し側リポジトリ内のパス。空なら同梱のルール
+        type: string
+        default: ""
+    secrets:
+      COPILOT_GITHUB_TOKEN:
+        description: Copilot Requests 権限を持つ fine-grained PAT。未設定ならルールによる観点だけを出力する
+        required: false
+
+jobs:
+  summary:
+    # フォークからの PR ではトークンが読み取り専用のため実行しない
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write        # gh-pages ブランチへの push
+      pull-requests: write   # PR へのリンクコメント
+      pages: read            # 公開 URL の取得
+    # gh-pages への push が競合しないよう、リポジトリ全体で直列に実行する
+    concurrency:
+      group: pr-summary-gh-pages
+      cancel-in-progress: false
+    steps:
+      - name: Check out rules
+        if: inputs.rules != ''
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: ${{ inputs.rules }}
+          sparse-checkout-cone-mode: false
+
+      # 本リポジトリを別の場所(会社の Organization など)へ移した場合は、ここの参照先も書き換える
+      - uses: ymiyamoto63/PullRequestReviewSupporter@main
+        with:
+          copilot-token: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+          model: ${{ inputs.model }}
+          rules: ${{ inputs.rules }}

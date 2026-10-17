@@ -1,0 +1,106 @@
+name: PR Review Summary
+description: PR の内容をレビュー用の HTML にまとめて gh-pages ブランチへ公開し、PR にリンクをコメントする
+author: ymiyamoto63
+
+# pull_request イベントで使う。必要な権限: contents: write, pull-requests: write, pages: read
+inputs:
+  github-token:
+    description: PR の取得、gh-pages への push、コメントに使うトークン
+    default: ${{ github.token }}
+  copilot-token:
+    description: Copilot Requests 権限を持つ fine-grained PAT。空ならルールによる観点だけを出力する
+    default: ""
+  model:
+    description: Copilot CLI のモデル名。空なら Copilot の既定
+    default: ""
+  rules:
+    description: 重要箇所の検出ルール (JSON) のワークスペース内のパス。空またはファイルが無ければ同梱のルールを使う
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Check out gh-pages
+      shell: bash
+      env:
+        TOKEN: ${{ inputs.github-token }}
+      run: |
+        site="$RUNNER_TEMP/pr-summary-site"
+        rm -rf "$site"
+        git init -q "$site"
+        cd "$site"
+        git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
+        git config "http.$GITHUB_SERVER_URL/.extraheader" "AUTHORIZATION: basic $(printf 'x-access-token:%s' "$TOKEN" | base64 -w0)"
+        if git ls-remote --exit-code --heads origin gh-pages >/dev/null; then
+          git fetch -q --depth=1 origin gh-pages
+          git checkout -q -b gh-pages FETCH_HEAD
+        else
+          git checkout -q --orphan gh-pages
+        fi
+        touch .nojekyll
+
+    # 変更内容の要約に GitHub Copilot CLI を使う。トークンが未設定ならスキップする
+    - name: Install Copilot CLI
+      if: inputs.copilot-token != ''
+      shell: bash
+      run: npm install -g @github/copilot
+
+    - name: Generate summary HTML
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        COPILOT_GITHUB_TOKEN: ${{ inputs.copilot-token }}
+        PR_SUMMARY_MODEL: ${{ inputs.model }}
+        RULES: ${{ inputs.rules }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+      run: |
+        args=(--repo "$GITHUB_REPOSITORY" --pr "$PR_NUMBER" --out "$RUNNER_TEMP/pr-summary-site")
+        if [ -n "$RULES" ] && [ -f "$GITHUB_WORKSPACE/$RULES" ]; then
+          args+=(--rules "$GITHUB_WORKSPACE/$RULES")
+        elif [ -n "$RULES" ]; then
+          echo "::warning::ルールファイル $RULES が見つからないため同梱のルールを使います(actions/checkout が必要です)"
+        fi
+        python3 "$GITHUB_ACTION_PATH/scripts/generate_pr_summary.py" "${args[@]}"
+
+    - name: Publish to gh-pages
+      shell: bash
+      env:
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+      run: |
+        cd "$RUNNER_TEMP/pr-summary-site"
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add -A
+        if git diff --cached --quiet; then
+          echo "No changes"
+        else
+          git commit -q -m "Update summary for PR #$PR_NUMBER"
+          git push -q origin gh-pages
+        fi
+
+    # アクセス制御付きの Pages は URL がランダムなサブドメインになるため、URL は Pages API から取る
+    - name: Comment summary link on PR
+      if: github.event.action != 'closed'
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ inputs.github-token }}
+        script: |
+          const marker = '<!-- pr-summary-link -->';
+          const { owner, repo } = context.repo;
+          const number = context.payload.pull_request.number;
+          let siteUrl = `https://${owner.toLowerCase()}.github.io/${repo}/`;
+          try {
+            const { data } = await github.rest.repos.getPages({ owner, repo });
+            if (data.html_url) siteUrl = data.html_url;
+          } catch (err) {
+            core.info(`Pages の URL を取得できなかったため既定の URL を使います: ${err.status ?? err.message}`);
+          }
+          const url = `${siteUrl.replace(/\/?$/, '/')}pr/${number}/`;
+          const body = `${marker}\n📄 レビュー用サマリー: ${url}\n\n(PR が更新されるたびに自動で再生成されます。反映まで1〜2分かかることがあります。)`;
+          const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number: number });
+          const existing = comments.find(c => c.body && c.body.includes(marker));
+          if (!existing) {
+            await github.rest.issues.createComment({ owner, repo, issue_number: number, body });
+          } else if (existing.body !== body) {
+            await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+          }
