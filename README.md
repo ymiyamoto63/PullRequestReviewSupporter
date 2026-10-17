@@ -56,3 +56,11 @@ open site/pr/1/index.html
 ```
 
 Copilot CLI(`npm install -g @github/copilot`)が必要です。`--no-ai` を付けると Copilot を呼ばずに生成します。
+
+## テスト
+
+```sh
+python3 -m unittest discover -s tests -v
+```
+
+PR と main への push で、GitHub Actions(`.github/workflows/test.yml`)でも実行されます。
