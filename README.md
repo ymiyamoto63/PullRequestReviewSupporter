@@ -5,23 +5,38 @@ GitHub PR のレビューを効率化するため、PR 発行時にその内容�
 ## 仕組み
 
 PR が作成・更新されると GitHub Actions(`.github/workflows/pr-summary.yml`)が動き、
-`scripts/generate_pr_summary.py` が GitHub API から PR の情報を取得して HTML を生成します。
+`scripts/generate_pr_summary.py` が PR の内容を、Approve してよいかを素早く判断するための HTML にまとめます。
 生成した HTML は `gh-pages` ブランチに push され、GitHub Pages で公開されます。
 
 - PR ごとのサマリー: `https://<owner>.github.io/<repo>/pr/<番号>/`
 - PR 一覧: `https://<owner>.github.io/<repo>/`
 
-PR が作成されると、サマリーへのリンクが PR にコメントされます。
+PR が作成されると、サマリーへのリンクが PR にコメントされます。差分やコミットなどの詳細は PR を直接確認する前提です。
 
-### サマリーのフォーマット
+### サマリーの構成
 
-1. 基本情報(状態・作成者・ブランチ・日時・ラベル・レビュアー)
-2. 変更の規模(ファイル数・追加/削除行数・コミット数・種類別ファイル数)
-3. レビュー観点(変更内容から自動で洗い出した注意点)
-4. PR の説明(Markdown を整形して表示)
-5. 変更ファイル一覧
-6. コミット一覧
-7. 差分(ファイルごとに折りたたみ表示)
+1. **判断サマリー**: リスク度(高・中・低)、PR の要約、Approve 前に確認すること
+2. **何を変更したか**: 変更点ごとの「変更前 → 変更後」カード、影響するコンポーネントの図、変更したエリア(ディレクトリ別の変更量)
+3. **レビュー観点**: 重要箇所(認証認可、データベース、API、秘密情報、依存関係、CI/CD)の変更をルールで自動検出して必ず列挙し、AI が補足の観点を追加
+
+### AI による要約(GitHub Models)
+
+変更内容の要約には [GitHub Models](https://docs.github.com/github-models) を使います。ワークフローの
+`permissions: models: read` により標準の `GITHUB_TOKEN` で呼び出すため、API キーの登録は不要です。
+GitHub Models が使えない場合でも、ルールによるレビュー観点と変更エリアの図は出力されます。
+
+環境変数で次を変更できます。
+
+| 変数 | 既定値 | 内容 |
+| --- | --- | --- |
+| `PR_SUMMARY_MODEL` | `openai/gpt-4.1` | 使用するモデル |
+| `PR_SUMMARY_PROMPT_CHARS` | `20000` | モデルに渡す最大文字数(プランの入力上限に合わせて調整) |
+| `PR_SUMMARY_RULES` | `scripts/review_rules.json` | 重要箇所の検出ルール |
+
+### 重要箇所の検出ルール
+
+`scripts/review_rules.json` に、ファイルパスと差分中のキーワード(正規表現)でルールを定義しています。
+一致したものは AI の判断に関係なく、レビュー観点として必ず表示されます。リポジトリに合わせてルールを追加してください。
 
 ## セットアップ
 
@@ -31,6 +46,8 @@ PR が作成されると、サマリーへのリンクが PR にコメントさ�
 ## ローカルで試す
 
 ```sh
-GITHUB_TOKEN=<トークン> python3 scripts/generate_pr_summary.py --repo owner/name --pr 1 --out site
+GITHUB_TOKEN=<models:read 権限を持つトークン> python3 scripts/generate_pr_summary.py --repo owner/name --pr 1 --out site
 open site/pr/1/index.html
 ```
+
+`--no-ai` を付けると GitHub Models を呼ばずに生成します。

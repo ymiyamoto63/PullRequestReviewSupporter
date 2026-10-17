@@ -8,6 +8,7 @@ on:
 permissions:
   contents: write        # gh-pages ブランチへの push
   pull-requests: write   # PR へのリンクコメント
+  models: read           # GitHub Models による変更内容の要約
 
 # gh-pages への push が競合しないよう、リポジトリ全体で直列に実行する
 concurrency:

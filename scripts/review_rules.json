@@ -1,0 +1,74 @@
+{
+  "_comment": "重要箇所の検出ルール。paths はファイルパス、keywords は差分の追加・削除行に対する正規表現(大文字小文字は区別しない)。どちらかに一致すればレビュー観点として必ず列挙する。",
+  "rules": [
+    {
+      "id": "auth",
+      "name": "認証・認可",
+      "severity": "high",
+      "paths": ["(^|/)(auth|authn|authz|login|logout|signin|signup|session|sessions|oauth|sso|saml|jwt|permission|permissions|role|roles|acl|policy|policies|guard|guards|middleware)(/|\\.|_|$)"],
+      "keywords": ["authenticat", "authoriz", "\\bjwt\\b", "access[_-]?token", "refresh[_-]?token", "password", "\\bsession\\b", "permission", "\\brole[s]?\\b", "csrf", "\\bcors\\b", "@PreAuthorize", "login_required", "is_admin", "bcrypt", "hash_password"],
+      "checks": [
+        "認証をバイパスできる経路が増えていないか",
+        "権限チェックが抜けている、または緩くなっていないか",
+        "トークンやセッションの有効期限・失効処理が正しいか"
+      ]
+    },
+    {
+      "id": "database",
+      "name": "データベース",
+      "severity": "high",
+      "paths": ["(^|/)(migrations?|migrate|db|database|schema|alembic|prisma|flyway|liquibase)(/|\\.|$)", "\\.sql$", "(^|/)(models?|entities|entity|repositories|repository)/"],
+      "keywords": ["create\\s+table", "alter\\s+table", "drop\\s+(table|column|index)", "add\\s+column", "create\\s+(unique\\s+)?index", "\\bforeign\\s+key\\b", "\\btruncate\\b", "delete\\s+from", "add_column", "remove_column", "create_table"],
+      "checks": [
+        "マイグレーションは既存データを壊さないか(ロールバックできるか)",
+        "大きなテーブルへのロックや長時間処理にならないか",
+        "インデックスや制約の追加・削除がクエリ性能に影響しないか"
+      ]
+    },
+    {
+      "id": "api",
+      "name": "API",
+      "severity": "high",
+      "paths": ["(^|/)(api|apis|routes?|routers?|controllers?|handlers?|endpoints?|graphql)(/|\\.|$)", "openapi", "swagger", "\\.proto$", "\\.graphql$"],
+      "keywords": ["@(app|router|bp|blueprint)\\.(get|post|put|patch|delete|route)", "router\\.(get|post|put|patch|delete)", "@(Get|Post|Put|Patch|Delete|Request)Mapping", "\\bendpoint\\b", "status_code", "HttpStatus"],
+      "checks": [
+        "既存クライアントとの互換性が壊れていないか(パラメータやレスポンスの変更)",
+        "入力値の検証が十分か",
+        "エラー時のレスポンスとステータスコードが適切か"
+      ]
+    },
+    {
+      "id": "secrets",
+      "name": "秘密情報・環境設定",
+      "severity": "high",
+      "paths": ["(^|/)\\.env", "secret", "credential", "\\.pem$", "\\.key$"],
+      "keywords": ["api[_-]?key", "secret[_-]?key", "client[_-]?secret", "private[_-]?key", "BEGIN (RSA |EC )?PRIVATE KEY", "password\\s*[:=]\\s*['\"]"],
+      "checks": [
+        "秘密情報がコードや設定ファイルに直接書かれていないか",
+        "本番環境の設定値が変わる場合、影響範囲が把握できているか"
+      ]
+    },
+    {
+      "id": "dependencies",
+      "name": "依存関係",
+      "severity": "medium",
+      "paths": ["(^|/)(package\\.json|package-lock\\.json|yarn\\.lock|pnpm-lock\\.yaml|requirements[^/]*\\.txt|pyproject\\.toml|poetry\\.lock|Pipfile(\\.lock)?|go\\.mod|go\\.sum|pom\\.xml|build\\.gradle(\\.kts)?|Gemfile(\\.lock)?|Cargo\\.(toml|lock)|composer\\.(json|lock))$"],
+      "keywords": [],
+      "checks": [
+        "追加・更新したライブラリに既知の脆弱性やライセンス上の問題がないか",
+        "メジャーバージョンアップによる非互換がないか"
+      ]
+    },
+    {
+      "id": "infra",
+      "name": "CI/CD・インフラ",
+      "severity": "medium",
+      "paths": ["^\\.github/workflows/", "(^|/)Dockerfile", "docker-compose", "\\.tf$", "(^|/)(k8s|kubernetes|helm|charts|deploy|infra|terraform)/"],
+      "keywords": [],
+      "checks": [
+        "ワークフローの権限(permissions)やトリガーが広がっていないか",
+        "デプロイ手順や本番環境への影響が想定どおりか"
+      ]
+    }
+  ]
+}
