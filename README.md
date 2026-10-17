@@ -5,23 +5,43 @@ GitHub PR のレビューを効率化するため、PR 発行時にその内容�
 ## 仕組み
 
 PR が作成・更新されると GitHub Actions(`.github/workflows/pr-summary.yml`)が動き、
-`scripts/generate_pr_summary.py` が GitHub API から PR の情報を取得して HTML を生成します。
+`scripts/generate_pr_summary.py` が PR の内容を、Approve してよいかを素早く判断するための HTML にまとめます。
 生成した HTML は `gh-pages` ブランチに push され、GitHub Pages で公開されます。
 
 - PR ごとのサマリー: `https://<owner>.github.io/<repo>/pr/<番号>/`
 - PR 一覧: `https://<owner>.github.io/<repo>/`
 
-PR が作成されると、サマリーへのリンクが PR にコメントされます。
+PR が作成されると、サマリーへのリンクが PR にコメントされます。差分やコミットなどの詳細は PR を直接確認する前提です。
 
-### サマリーのフォーマット
+### サマリーの構成
 
-1. 基本情報(状態・作成者・ブランチ・日時・ラベル・レビュアー)
-2. 変更の規模(ファイル数・追加/削除行数・コミット数・種類別ファイル数)
-3. レビュー観点(変更内容から自動で洗い出した注意点)
-4. PR の説明(Markdown を整形して表示)
-5. 変更ファイル一覧
-6. コミット一覧
-7. 差分(ファイルごとに折りたたみ表示)
+1. **判断サマリー**: リスク度(高・中・低)、PR の要約、Approve 前に確認すること
+2. **何を変更したか**: 変更点ごとの「変更前 → 変更後」カード、影響するコンポーネントの図、変更したエリア(ディレクトリ別の変更量)
+3. **レビュー観点**: 重要箇所(認証認可、データベース、API、秘密情報、依存関係、CI/CD)の変更をルールで自動検出して必ず列挙し、AI が補足の観点を追加
+
+### AI による要約(GitHub Copilot CLI)
+
+変更内容の要約には [GitHub Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli/automate-copilot-cli/automate-with-actions) を非対話モードで使います。
+利用には Copilot のプランと、次の設定が必要です。
+
+1. **Copilot Requests** 権限を付けた fine-grained personal access token を作成します。
+2. リポジトリの **Settings → Secrets and variables → Actions** で、Secret `COPILOT_GITHUB_TOKEN` として登録します。
+
+Copilot の利用分はトークンを作成したユーザーの Copilot に計上されます。
+Secret が未設定、または Copilot の呼び出しに失敗した場合でも、ルールによるレビュー観点と変更エリアの図は出力されます。
+
+次の設定で動作を変更できます。
+
+| 設定 | 既定値 | 内容 |
+| --- | --- | --- |
+| Actions 変数 `PR_SUMMARY_MODEL` | Copilot の既定 | 使用するモデル(`copilot --model` に渡す値) |
+| 環境変数 `PR_SUMMARY_PROMPT_CHARS` | `40000` | Copilot に渡す最大文字数 |
+| 環境変数 `PR_SUMMARY_RULES` | `scripts/review_rules.json` | 重要箇所の検出ルール |
+
+### 重要箇所の検出ルール
+
+`scripts/review_rules.json` に、ファイルパスと差分中のキーワード(正規表現)でルールを定義しています。
+一致したものは AI の判断に関係なく、レビュー観点として必ず表示されます。リポジトリに合わせてルールを追加してください。
 
 ## セットアップ
 
@@ -31,6 +51,8 @@ PR が作成されると、サマリーへのリンクが PR にコメントさ�
 ## ローカルで試す
 
 ```sh
-GITHUB_TOKEN=<トークン> python3 scripts/generate_pr_summary.py --repo owner/name --pr 1 --out site
+GITHUB_TOKEN=<トークン> COPILOT_GITHUB_TOKEN=<Copilot Requests 権限のトークン> python3 scripts/generate_pr_summary.py --repo owner/name --pr 1 --out site
 open site/pr/1/index.html
 ```
+
+Copilot CLI(`npm install -g @github/copilot`)が必要です。`--no-ai` を付けると Copilot を呼ばずに生成します。

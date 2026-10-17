@@ -35,9 +35,18 @@ jobs:
           fi
           touch site/.nojekyll
 
+      # 変更内容の要約に GitHub Copilot CLI を使う。Secret が未設定ならスキップし、ルールによる観点だけを出力する
+      - name: Install Copilot CLI
+        env:
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+        if: env.COPILOT_GITHUB_TOKEN != ''
+        run: npm install -g @github/copilot
+
       - name: Generate summary HTML
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+          PR_SUMMARY_MODEL: ${{ vars.PR_SUMMARY_MODEL }}
         run: python3 scripts/generate_pr_summary.py --repo "${{ github.repository }}" --pr "${{ github.event.pull_request.number }}" --out site
 
       - name: Publish to gh-pages
