@@ -58,7 +58,11 @@ table{border-collapse:collapse;width:100%}
 th,td{text-align:left;padding:6px 10px;border-bottom:1px solid var(--border)}
 footer{margin-top:24px;font-size:.85rem;color:var(--muted)}
 </style>
-
+<script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
+const dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+mermaid.initialize({startOnLoad: true, theme: dark ? "dark" : "default", securityLevel: "strict"});
+</script>
 </head>
 <body><main>
 
@@ -70,22 +74,45 @@ footer{margin-top:24px;font-size:.85rem;color:var(--muted)}
 <h2>判断サマリー</h2>
 <div class="verdict">
 <div class="risk high"><span>リスク</span><b>高</b></div>
-<div class="verdict-body"><p class="summary">Rework PR summary for faster approve decisions</p><p class="muted">重要箇所の変更: 認証・認可、データベース、API、CI/CD・インフラ</p><h3>Approve 前に確認すること</h3><ul class="check"><li>認証・認可への変更を確認する(下の「レビュー観点」参照)</li><li>データベースへの変更を確認する(下の「レビュー観点」参照)</li><li>APIへの変更を確認する(下の「レビュー観点」参照)</li></ul></div>
+<div class="verdict-body"><p class="summary">PR サマリーを、リスク判断・変更前後の説明・コンポーネント図・レビュー観点を含む構成に刷新します。重要領域の変更はルールで検出し、Copilot CLI が利用できない場合も基本のレビュー情報を生成します。</p><p class="muted">GitHub Actions に Copilot CLI と追加のトークン設定を導入し、生成結果を公開ページに反映するため、権限・出力検証・失敗時の動作確認が必要です。</p><p class="muted">重要箇所の変更: 認証・認可、データベース、API、CI/CD・インフラ</p><h3>Approve 前に確認すること</h3><ul class="check"><li>Copilot のトークンが必要最小限の権限で管理され、ログや生成 HTML に漏れないことを確認する。</li><li>Copilot が未設定・失敗・不正な出力の場合にも、ルールベースの情報を含むページが生成されることを確認する。</li><li>認証・DB・API・秘密情報・依存関係・CI/CD の検出ルールが想定する変更を捕捉することを確認する。</li><li>大きな差分を含む PR で、要約に必要な重要箇所が文字数上限で欠落しないことを確認する。</li><li>Actions の権限、トリガー、既存の GitHub Pages 公開フローに意図しない変更がないことを確認する。</li><li>認証・認可への変更を確認する(下の「レビュー観点」参照)</li><li>データベースへの変更を確認する(下の「レビュー観点」参照)</li><li>APIへの変更を確認する(下の「レビュー観点」参照)</li></ul></div>
 </div>
 </section>
 
 <section>
 <h2>何を変更したか</h2>
-<p class="notice">AI による変更内容の要約を生成できませんでした(COPILOT_GITHUB_TOKEN が設定されていません)。変更エリアの図とレビュー観点のみ表示しています。</p>
+<p><strong>目的:</strong> レビュー担当者が変更内容と確認すべきリスクを把握し、Approve の判断をより速く行えるようにするためです。</p><div class="changes"><div class="change"><h3>レビュー向けサマリーの生成</h3>
+<div class="ba"><div class="before"><small>変更前</small>PR の基本情報、変更規模、ファイル、コミット、差分などを並べ、変更内容や承認可否の判断は読み手に委ねていました。</div><div class="arrow">→</div>
+<div class="after"><small>変更後</small>リスク度、Approve 前の確認事項、変更前後のカード、コンポーネント図、レビュー観点を含む HTML を生成します。</div></div><div class="files"><code>scripts/generate_pr_summary.py</code></div></div><div class="change"><h3>重要変更のルール検出</h3>
+<div class="ba"><div class="before"><small>変更前</small>変更内容から注意すべき領域を列挙する明示的なルール定義はありませんでした。</div><div class="arrow">→</div>
+<div class="after"><small>変更後</small>パスや差分の正規表現で認証・DB・API・秘密情報・依存関係・CI/CD の変更を検出し、該当する確認事項を必ず表示します。</div></div><div class="files"><code>scripts/review_rules.json</code> <code>scripts/generate_pr_summary.py</code></div></div><div class="change"><h3>Copilot CLI による変更要約</h3>
+<div class="ba"><div class="before"><small>変更前</small>変更内容を構造化した要約として提示する仕組みはありませんでした。</div><div class="arrow">→</div>
+<div class="after"><small>変更後</small>Copilot CLI に差分を渡して要約を生成し、結果を検証して HTML に反映します。未設定・失敗時もルール由来の観点と変更エリア図を出力します。</div></div><div class="files"><code>scripts/generate_pr_summary.py</code> <code>.github/workflows/pr-summary.yml</code> <code>README.md</code></div></div><div class="change"><h3>Actions 設定と生成物の整理</h3>
+<div class="ba"><div class="before"><small>変更前</small>Copilot 用のインストール・設定がなく、Python キャッシュファイルが追跡対象に含まれていました。</div><div class="arrow">→</div>
+<div class="after"><small>変更後</small>トークンが設定された場合に Copilot CLI を導入し、モデル設定を渡します。キャッシュ等を .gitignore に追加し、追跡されていた pyc を削除します。</div></div><div class="files"><code>.github/workflows/pr-summary.yml</code> <code>.gitignore</code> <code>scripts/__pycache__/generate_pr_summary.cpython-313.pyc</code></div></div></div><h3 style="margin-top:18px">影響するコンポーネント</h3><p class="muted" style="margin:0">オレンジ色が今回変更したコンポーネントです。</p><div class="diagram"><pre class="mermaid">flowchart LR
+  n0[&quot;GitHub Actions ワークフロー&quot;]
+  class n0 changed
+  n1[&quot;PR サマリー生成スクリプト&quot;]
+  class n1 changed
+  n2[&quot;重要変更ルール&quot;]
+  class n2 changed
+  n3[&quot;Copilot CLI&quot;]
+  n4[&quot;GitHub API&quot;]
+  n5[&quot;GitHub Pages&quot;]
+  n0 -- &quot;PR 情報と設定を渡して実行&quot; --&gt; n1
+  n1 -- &quot;PR の情報・差分を取得&quot; --&gt; n4
+  n1 -- &quot;変更ファイルと差分を照合&quot; --&gt; n2
+  n1 -- &quot;差分を渡して要約を生成（利用可能な場合）&quot; --&gt; n3
+  n0 -- &quot;生成した HTML を公開&quot; --&gt; n5
+  classDef changed fill:#ffd8b5,stroke:#bc4c00,stroke-width:2px,color:#1f2328</pre></div>
 <h3 style="margin-top:18px">変更したエリア</h3>
 <div class="areas"><div class="area sensitive"><div><code>scripts/</code><span class="tag">● 重要</span></div><div class="track"><div class="fill" style="width:100%"></div></div><div class="muted">2 ファイル / 741 行</div></div><div class="area"><div><code>(ルート)</code></div><div class="track"><div class="fill" style="width:6%"></div></div><div class="muted">2 ファイル / 47 行</div></div><div class="area sensitive"><div><code>.github/workflows/</code><span class="tag">● 重要</span></div><div class="track"><div class="fill" style="width:2%"></div></div><div class="muted">1 ファイル / 9 行</div></div><div class="area"><div><code>scripts/__pycache__/</code></div><div class="track"><div class="fill" style="width:2%"></div></div><div class="muted">1 ファイル / 0 行</div></div></div>
 </section>
 
 <section>
 <h2>レビュー観点</h2>
-<div class="point high"><span class="badge high">重要・自動検出</span><strong>認証・認可</strong><ul><li>認証をバイパスできる経路が増えていないか</li><li>権限チェックが抜けている、または緩くなっていないか</li><li>トークンやセッションの有効期限・失効処理が正しいか</li></ul><div class="files"><code>scripts/review_rules.json</code>(キーワード「jwt」)</div></div><div class="point high"><span class="badge high">重要・自動検出</span><strong>データベース</strong><ul><li>マイグレーションは既存データを壊さないか(ロールバックできるか)</li><li>大きなテーブルへのロックや長時間処理にならないか</li><li>インデックスや制約の追加・削除がクエリ性能に影響しないか</li></ul><div class="files"><code>scripts/review_rules.json</code>(キーワード「add_column」)</div></div><div class="point high"><span class="badge high">重要・自動検出</span><strong>API</strong><ul><li>既存クライアントとの互換性が壊れていないか(パラメータやレスポンスの変更)</li><li>入力値の検証が十分か</li><li>エラー時のレスポンスとステータスコードが適切か</li></ul><div class="files"><code>scripts/review_rules.json</code>(キーワード「status_code」)</div></div><div class="point medium"><span class="badge medium">重要・自動検出</span><strong>CI/CD・インフラ</strong><ul><li>ワークフローの権限(permissions)やトリガーが広がっていないか</li><li>デプロイ手順や本番環境への影響が想定どおりか</li></ul><div class="files"><code>.github/workflows/pr-summary.yml</code>(パス)</div></div>
+<div class="point high"><span class="badge high">重要・自動検出</span><strong>認証・認可</strong><ul><li>認証をバイパスできる経路が増えていないか</li><li>権限チェックが抜けている、または緩くなっていないか</li><li>トークンやセッションの有効期限・失効処理が正しいか</li></ul><div class="files"><code>scripts/review_rules.json</code>(キーワード「jwt」)</div></div><div class="point high"><span class="badge high">重要・自動検出</span><strong>データベース</strong><ul><li>マイグレーションは既存データを壊さないか(ロールバックできるか)</li><li>大きなテーブルへのロックや長時間処理にならないか</li><li>インデックスや制約の追加・削除がクエリ性能に影響しないか</li></ul><div class="files"><code>scripts/review_rules.json</code>(キーワード「add_column」)</div></div><div class="point high"><span class="badge high">重要・自動検出</span><strong>API</strong><ul><li>既存クライアントとの互換性が壊れていないか(パラメータやレスポンスの変更)</li><li>入力値の検証が十分か</li><li>エラー時のレスポンスとステータスコードが適切か</li></ul><div class="files"><code>scripts/review_rules.json</code>(キーワード「status_code」)</div></div><div class="point medium"><span class="badge medium">重要・自動検出</span><strong>CI/CD・インフラ</strong><ul><li>ワークフローの権限(permissions)やトリガーが広がっていないか</li><li>デプロイ手順や本番環境への影響が想定どおりか</li></ul><div class="files"><code>.github/workflows/pr-summary.yml</code>(パス)</div></div><div class="point"><span class="badge ai">AI</span><strong>Copilot トークンの権限と取り扱い</strong><div>COPILOT_GITHUB_TOKEN に必要以上の権限がなく、Copilot CLI に渡す際やログ出力で漏えいしないことを確認してください。GITHUB_TOKEN を Copilot 呼び出しに渡さない設計も確認対象です。</div><div class="files"><code>.github/workflows/pr-summary.yml</code> <code>scripts/generate_pr_summary.py</code></div></div><div class="point"><span class="badge ai">AI</span><strong>Copilot 出力の検証と失敗時の継続</strong><div>不正・欠落した result.json や CLI のタイムアウト・失敗時に、未検証の値を HTML に埋め込まず、ルール由来のレビュー観点と図を出力できることを確認してください。</div><div class="files"><code>scripts/generate_pr_summary.py</code></div></div><div class="point"><span class="badge ai">AI</span><strong>ルールの網羅性と誤検出</strong><div>パス・キーワードの正規表現が対象リポジトリの命名や差分に合い、重要変更の見落としや過剰な検出がないか確認してください。</div><div class="files"><code>scripts/review_rules.json</code></div></div><div class="point"><span class="badge ai">AI</span><strong>差分の切り詰めと要約品質</strong><div>既定の文字数上限や重要ファイル優先の選択により、判断に必要な差分が欠落しないか確認してください。大きな PR での動作も対象です。</div><div class="files"><code>scripts/generate_pr_summary.py</code> <code>README.md</code></div></div><div class="point"><span class="badge ai">AI</span><strong>Actions の条件・権限と公開動作</strong><div>COPILOT_GITHUB_TOKEN が未設定のとき CLI 導入をスキップできること、既存の Actions 権限や gh-pages 公開フローに不要な変更がないことを確認してください。</div><div class="files"><code>.github/workflows/pr-summary.yml</code></div></div>
 </section>
-<footer>生成日時: 2026-10-17 02:54 UTC · head <code>7b75ef7</code><br>
+<footer>生成日時: 2026-10-17 05:43 UTC · head <code>7b75ef7</code> · 要約: GitHub Copilot<br>
 AI の要約は誤りを含むことがあります。判断に迷う点は PR の差分で確認してください。</footer>
 
 </main></body>
