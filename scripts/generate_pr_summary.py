@@ -183,8 +183,20 @@ def call_github_models(prompt, token, model):
     req.add_header("Content-Type", "application/json")
     req.add_header("Accept", "application/json")
     with urllib.request.urlopen(req, timeout=120) as res:
-        data = json.loads(res.read().decode())
-    return json.loads(data["choices"][0]["message"]["content"])
+        raw = res.read().decode()
+    try:
+        content = json.loads(raw)["choices"][0]["message"]["content"] or ""
+    except (ValueError, KeyError, IndexError, TypeError) as err:
+        raise ValueError(f"想定外のレスポンス: {raw[:500]!r}") from err
+    return parse_json_content(content)
+
+
+def parse_json_content(content):
+    """モデルが JSON をコードブロックで囲んだり前後に文章を付けたりしても読めるようにする。"""
+    start, end = content.find("{"), content.rfind("}")
+    if start < 0 or end < start:
+        raise ValueError(f"JSON が含まれていません: {content[:500]!r}")
+    return json.loads(content[start:end + 1])
 
 
 def _str(v):
