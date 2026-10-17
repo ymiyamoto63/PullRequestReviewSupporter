@@ -71,10 +71,13 @@ def api_paginated(path, token):
 # ---------------------------------------------------------------- ルールによる重要箇所の検出
 
 def load_rules(path):
-    rules = json.loads(Path(path).read_text(encoding="utf-8"))["rules"]
+    config = json.loads(Path(path).read_text(encoding="utf-8"))
+    keyword_exclude = [re.compile(p, re.IGNORECASE) for p in config.get("keyword_exclude_paths", [])]
+    rules = config["rules"]
     for r in rules:
         r["_paths"] = [re.compile(p, re.IGNORECASE) for p in r.get("paths", [])]
         r["_keywords"] = [re.compile(k, re.IGNORECASE) for k in r.get("keywords", [])]
+        r["_keyword_exclude"] = keyword_exclude
     return rules
 
 
@@ -94,6 +97,8 @@ def detect_sensitive(files, rules):
             name = f["filename"]
             if any(p.search(name) for p in rule["_paths"]):
                 matched[name] = "パス"
+                continue
+            if any(p.search(name) for p in rule["_keyword_exclude"]):
                 continue
             for line in changed_lines(f.get("patch")):
                 m = next((m for k in rule["_keywords"] if (m := k.search(line))), None)

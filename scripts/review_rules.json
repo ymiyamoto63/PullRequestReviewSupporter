@@ -1,5 +1,14 @@
 {
   "_comment": "重要箇所の検出ルール。paths はファイルパス、keywords は差分の追加・削除行に対する正規表現(大文字小文字は区別しない)。どちらかに一致すればレビュー観点として必ず列挙する。",
+  "_comment_keyword_exclude_paths": "keywords による検出を行わないファイル。テストやドキュメント、CI 設定の中の文字列で誤検出しないようにする(paths による検出は行う)。",
+  "keyword_exclude_paths": [
+    "(^|/)(tests?|spec|specs|__tests__|testdata|fixtures)/",
+    "(^|/)test_[^/]*$",
+    "[._-](test|spec)\\.[a-z0-9]+$",
+    "\\.(md|rst|txt)$",
+    "(^|/)docs?/",
+    "^\\.github/"
+  ],
   "rules": [
     {
       "id": "auth",

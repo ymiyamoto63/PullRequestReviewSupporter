@@ -28,6 +28,13 @@ class DetectSensitiveTest(unittest.TestCase):
         self.assertEqual(self.rule_ids([added]), ["database"])
         self.assertEqual(self.rule_ids([context]), [])
 
+    def test_keywords_are_ignored_in_tests_docs_and_ci_config(self):
+        self.assertEqual(self.rule_ids([file("tests/test_db.py", "@@ -1 +1 @@\n+sql = 'ALTER TABLE users'")]), [])
+        self.assertEqual(self.rule_ids([file("docs/setup.md", "@@ -1 +1 @@\n+Set the password here")]), [])
+        self.assertEqual(self.rule_ids([file(".github/workflows/ci.yml", "@@ -1 +1 @@\n+permissions:")]), ["infra"])
+        # パスによる検出はテストでも行う
+        self.assertEqual(self.rule_ids([file("tests/migrations/0001.sql")]), ["database"])
+
     def test_high_severity_rules_come_first(self):
         ids = self.rule_ids([file("package.json"), file("src/api/users.py")])
         self.assertEqual(ids, ["api", "dependencies"])
