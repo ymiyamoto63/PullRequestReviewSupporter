@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>#4 Make the PR summary reusable from other repositories</title>
+<style>
+:root{--bg:#f6f8fa;--card:#fff;--text:#1f2328;--muted:#656d76;--border:#d0d7de;--accent:#0969da;
+--high:#cf222e;--high-bg:#ffebe9;--medium:#9a6700;--medium-bg:#fff8c5;--low:#1a7f37;--low-bg:#dafbe1;
+--before-bg:#fff1f0;--after-bg:#eefbf1;--bar:#8c959f}
+@media (prefers-color-scheme:dark){:root{--bg:#0d1117;--card:#161b22;--text:#e6edf3;--muted:#8d96a0;
+--border:#30363d;--accent:#4493f8;--high:#f85149;--high-bg:#25171c;--medium:#d29922;--medium-bg:#272115;
+--low:#3fb950;--low-bg:#12261e;--before-bg:#2a1719;--after-bg:#132a1d;--bar:#6e7681}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Sans","Noto Sans JP",sans-serif}
+main{max-width:1000px;margin:0 auto;padding:24px 16px 64px}
+a{color:var(--accent)}
+h1{font-size:1.5rem;margin:0 0 4px;line-height:1.4}
+h2{font-size:1.1rem;margin:0 0 12px}
+h3{font-size:1rem;margin:0 0 6px}
+section{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin-top:16px}
+.muted{color:var(--muted)}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.85em;word-break:break-all}
+.verdict{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap}
+.risk{flex:0 0 auto;width:120px;text-align:center;border-radius:10px;padding:12px 8px}
+.risk b{display:block;font-size:2rem;line-height:1.2}
+.risk.high{background:var(--high-bg);color:var(--high)}.risk.medium{background:var(--medium-bg);color:var(--medium)}.risk.low{background:var(--low-bg);color:var(--low)}
+.verdict-body{flex:1 1 300px}
+.summary{font-size:1.05rem;margin:0 0 8px}
+ul.check{list-style:none;padding:0;margin:8px 0 0}
+ul.check li{padding-left:1.6em;position:relative;margin:4px 0}
+ul.check li::before{content:"☐";position:absolute;left:0}
+.changes{display:grid;gap:12px}
+.change{border:1px solid var(--border);border-radius:8px;padding:12px 14px}
+.ba{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:stretch;margin-top:6px}
+.ba div{border-radius:6px;padding:8px 10px}
+.ba .before{background:var(--before-bg)}.ba .after{background:var(--after-bg)}
+.ba .arrow{align-self:center;font-size:1.3rem;color:var(--muted);padding:0}
+.ba small{display:block;color:var(--muted);font-size:.75rem}
+@media (max-width:640px){.ba{grid-template-columns:1fr}.ba .arrow{transform:rotate(90deg);justify-self:center}}
+.files{margin-top:6px;font-size:.85rem;color:var(--muted)}
+.diagram{overflow-x:auto;text-align:center}
+pre.mermaid{background:none;margin:0}pre.mermaid:not([data-processed]){color:transparent}
+.areas{display:grid;gap:6px}
+.area{display:grid;grid-template-columns:minmax(120px,30%) 1fr auto;gap:10px;align-items:center;font-size:.9rem}
+.area .track{background:var(--bg);border-radius:4px;height:14px;overflow:hidden}
+.area .fill{height:100%;background:var(--bar);border-radius:4px}
+.area.sensitive .fill{background:var(--high)}
+.area .tag{font-size:.75rem;color:var(--high);margin-left:4px}
+.point{border-left:4px solid var(--border);padding:8px 12px;margin:10px 0;border-radius:0 6px 6px 0;background:var(--bg)}
+.point.high{border-color:var(--high)}.point.medium{border-color:var(--medium)}
+.badge{display:inline-block;font-size:.75rem;padding:0 8px;border-radius:999px;margin-right:6px;vertical-align:middle}
+.badge.high{background:var(--high-bg);color:var(--high)}.badge.medium{background:var(--medium-bg);color:var(--medium)}.badge.ai{background:var(--card);color:var(--muted);border:1px solid var(--border)}
+.point ul{margin:4px 0 0;padding-left:1.2em}
+.notice{background:var(--medium-bg);color:var(--medium);border-radius:6px;padding:8px 12px}
+.table-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%}
+th,td{text-align:left;padding:6px 10px;border-bottom:1px solid var(--border)}
+footer{margin-top:24px;font-size:.85rem;color:var(--muted)}
+</style>
+<script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
+const dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+mermaid.initialize({startOnLoad: true, theme: dark ? "dark" : "default", securityLevel: "strict"});
+</script>
+</head>
+<body><main>
+
+<p class="muted"><a href="../../">← PR 一覧</a> · ymiyamoto63/PullRequestReviewSupporter</p>
+<h1>#4 Make the PR summary reusable from other repositories</h1>
+<p><a href="https://github.com/ymiyamoto63/PullRequestReviewSupporter/pull/4">GitHub で PR を開く(差分・コミットの詳細)</a></p>
+
+<section>
+<h2>判断サマリー</h2>
+<div class="verdict">
+<div class="risk high"><span>リスク</span><b>高</b></div>
+<div class="verdict-body"><p class="summary">PR のレビュー用サマリー生成をコンポジットアクションとして切り出し、再利用可能ワークフローと直接利用の両方に対応します。Pages API から公開 URL を取得して PR コメントに反映し、既存リンクの不要な更新を抑えます。</p><p class="muted">アクションが gh-pages への書き込みや PR コメント作成を行い、再利用ワークフローは可変な main ブランチのアクションを参照するため、権限設定と参照先の信頼性の確認が必要です。</p><p class="muted">重要箇所の変更: 認証・認可、CI/CD・インフラ</p><h3>Approve 前に確認すること</h3><ul class="check"><li>呼び出し側の contents: write、pull-requests: write、pages: read が必要最小限で設定されていること。</li><li>fork PR のガードが維持され、トークンを使う処理が不適切なイベントで実行されないこと。</li><li>Pages API の URL と取得失敗時のフォールバックが意図した公開先を指すこと。</li><li>rules 指定時のチェックアウトと、ファイルがない場合のフォールバックが正しく動作すること。</li><li>コメントが PR イベントごとに重複せず、内容に変更がある場合だけ更新されること。</li><li>認証・認可への変更を確認する(下の「レビュー観点」参照)</li></ul></div>
+</div>
+</section>
+
+<section>
+<h2>何を変更したか</h2>
+<p><strong>目的:</strong> サマリー生成のワークフローやスクリプトを他リポジトリへ複製せずに導入できるようにし、アクセス制御付き GitHub Pages でも正しいリンクを案内するためです。</p><div class="changes"><div class="change"><h3>サマリー生成をコンポジットアクション化</h3>
+<div class="ba"><div class="before"><small>変更前</small>生成、公開、コメントの処理はこのリポジトリのワークフローに直接記述されていました。</div><div class="arrow">→</div>
+<div class="after"><small>変更後</small>action.yml に処理をまとめ、gh-pages を一時ディレクトリへ取得し、同梱スクリプトで生成・公開します。ルールファイルの指定も可能です。</div></div><div class="files"><code>action.yml</code></div></div><div class="change"><h3>他リポジトリ向け再利用ワークフローを追加</h3>
+<div class="ba"><div class="before"><small>変更前</small>他リポジトリで使うにはワークフロー、スクリプト、ルールの複製が必要でした。</div><div class="arrow">→</div>
+<div class="after"><small>変更後</small>再利用可能ワークフローからアクションを呼び出せます。fork PR のガード、必要な書き込み・Pages 読み取り権限、公開処理の concurrency 制御を設定します。</div></div><div class="files"><code>.github/workflows/pr-summary-reusable.yml</code></div></div><div class="change"><h3>既存ワークフローをアクション利用に変更</h3>
+<div class="ba"><div class="before"><small>変更前</small>PR サマリー生成と公開の各ステップをワークフロー内に持っていました。</div><div class="arrow">→</div>
+<div class="after"><small>変更後</small>リポジトリ内のアクションを呼び出し、PR ごとにその変更内容を使って実行します。Pages API 用の権限を追加しています。</div></div><div class="files"><code>.github/workflows/pr-summary.yml</code></div></div><div class="change"><h3>コメント URL と更新動作を改善</h3>
+<div class="ba"><div class="before"><small>変更前</small>コメントの URL は github.io の既定形式で、コメント処理は作成・再オープン時に限られていました。</div><div class="arrow">→</div>
+<div class="after"><small>変更後</small>Pages API が返す URL を優先し、取得失敗時は既定形式にフォールバックします。closed 以外のイベントで処理し、本文に変更がある場合だけ既存コメントを編集します。</div></div><div class="files"><code>action.yml</code></div></div><div class="change"><h3>導入手順を README に追加</h3>
+<div class="ba"><div class="before"><small>変更前</small>他リポジトリや会社 Organization への導入手順は記載されていませんでした。</div><div class="arrow">→</div>
+<div class="after"><small>変更後</small>再利用ワークフロー・直接利用の例、必要な権限や Secret、Organization 内で使う場合の設定を説明します。</div></div><div class="files"><code>README.md</code></div></div></div><h3 style="margin-top:18px">影響するコンポーネント</h3><p class="muted" style="margin:0">オレンジ色が今回変更したコンポーネントです。</p><div class="diagram"><pre class="mermaid">flowchart LR
+  n0[&quot;Pull Request イベント&quot;]
+  n1[&quot;PR Summary ワークフロー&quot;]
+  class n1 changed
+  n2[&quot;再利用可能ワークフロー&quot;]
+  class n2 changed
+  n3[&quot;コンポジットアクション&quot;]
+  class n3 changed
+  n4[&quot;サマリー生成スクリプト&quot;]
+  n5[&quot;gh-pages / GitHub Pages&quot;]
+  n6[&quot;PR コメント&quot;]
+  n0 -- &quot;イベントで起動&quot; --&gt; n1
+  n0 -- &quot;呼び出し元のイベント&quot; --&gt; n2
+  n1 -- &quot;ローカルアクションを呼び出す&quot; --&gt; n3
+  n2 -- &quot;アクションを呼び出す&quot; --&gt; n3
+  n3 -- &quot;HTML生成を実行&quot; --&gt; n4
+  n3 -- &quot;gh-pages へ公開&quot; --&gt; n5
+  n3 -- &quot;サマリー URL を投稿・更新&quot; --&gt; n6
+  classDef changed fill:#ffd8b5,stroke:#bc4c00,stroke-width:2px,color:#1f2328</pre></div>
+<h3 style="margin-top:18px">変更したエリア</h3>
+<div class="areas"><div class="area sensitive"><div><code>(ルート)</code><span class="tag">● 重要</span></div><div class="track"><div class="fill" style="width:100%"></div></div><div class="muted">2 ファイル / 159 行</div></div><div class="area sensitive"><div><code>.github/workflows/</code><span class="tag">● 重要</span></div><div class="track"><div class="fill" style="width:69%"></div></div><div class="muted">2 ファイル / 109 行</div></div></div>
+</section>
+
+<section>
+<h2>レビュー観点</h2>
+<div class="point high"><span class="badge high">重要・自動検出</span><strong>認証・認可</strong><ul><li>認証をバイパスできる経路が増えていないか</li><li>権限チェックが抜けている、または緩くなっていないか</li><li>トークンやセッションの有効期限・失効処理が正しいか</li></ul><div class="files"><code>action.yml</code>(キーワード「AUTHORIZ」)</div></div><div class="point medium"><span class="badge medium">重要・自動検出</span><strong>CI/CD・インフラ</strong><ul><li>ワークフローの権限(permissions)やトリガーが広がっていないか</li><li>デプロイ手順や本番環境への影響が想定どおりか</li></ul><div class="files"><code>.github/workflows/pr-summary-reusable.yml</code>(パス) <code>.github/workflows/pr-summary.yml</code>(パス)</div></div><div class="point"><span class="badge ai">AI</span><strong>書き込み権限と fork PR の実行条件</strong><div>アクションは gh-pages への push と PR コメントの作成・更新を行います。呼び出し側で必要な権限だけが許可され、fork からの PR が想定どおり実行対象外になるか確認してください。</div><div class="files"><code>.github/workflows/pr-summary-reusable.yml</code> <code>.github/workflows/pr-summary.yml</code> <code>action.yml</code></div></div><div class="point"><span class="badge ai">AI</span><strong>外部アクションの参照先</strong><div>再利用ワークフローはアクションを @main で参照しています。ブランチ更新による動作変更や供給元の信頼性を許容できるか確認してください。</div><div class="files"><code>.github/workflows/pr-summary-reusable.yml</code></div></div><div class="point"><span class="badge ai">AI</span><strong>Pages URL とルールファイルの扱い</strong><div>Pages API の URL が末尾スラッシュの有無を問わず正しく組み立てられること、API 失敗時に旧 URL へ戻ることを確認してください。また、rules 指定時はチェックアウトされたファイルだけが利用され、未取得時の警告と既定ルールへの切り替えが意図どおりか確認してください。</div><div class="files"><code>action.yml</code> <code>.github/workflows/pr-summary-reusable.yml</code></div></div><div class="point"><span class="badge ai">AI</span><strong>イベントごとのコメント更新</strong><div>closed 以外のイベントでコメントを確認し、本文が変わらない場合に更新が発生しないこと、既存コメントがなければ作成されることを確認してください。</div><div class="files"><code>action.yml</code></div></div>
+</section>
+<footer>生成日時: 2026-10-17 06:03 UTC · head <code>3b8c7bb</code> · 要約: GitHub Copilot<br>
+AI の要約は誤りを含むことがあります。判断に迷う点は PR の差分で確認してください。</footer>
+
+</main></body>
+</html>
